@@ -14,6 +14,8 @@ export default defineConfig([
     rules: {
       semi: ["error", "always"],
       quotes: ["error", "single"],
+      "no-console": "off",
     },
+    ignores: ["coverage/**", "dist/**"],
   },
 ]);

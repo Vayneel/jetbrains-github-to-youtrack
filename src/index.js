@@ -3,7 +3,7 @@ import { createGitHubClient, listIssues } from "./github.js";
 import { createYouTrackClient, createIssue } from "./youtrack.js";
 import { mapGitHubIssueToYouTrack } from "./mapper.js";
 
-async function main() {
+export async function main() {
   const owner = getRequiredEnv("GITHUB_OWNER");
   const repo = getRequiredEnv("GITHUB_REPO");
   const youtrackProjectId = getRequiredEnv("YOUTRACK_PROJECT_ID");
@@ -29,7 +29,9 @@ async function main() {
   logger.info("Import complete");
 }
 
-main().catch((err) => {
-  logger.error(err?.response?.data || err.message || err);
-  process.exitCode = 1;
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    logger.error(err?.response?.data || err.message || err);
+    process.exitCode = 1;
+  });
+}
