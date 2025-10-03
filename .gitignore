@@ -1,0 +1,31 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# env
+.env
+.env.*
+
+# build / output
+dist/
+build/
+coverage/
+
+# editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# system
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+
+# misc
+/coverage
+/.nyc_output

@@ -1,0 +1,50 @@
+{
+  "name": "github-to-youtrack",
+  "version": "0.1.0",
+  "description": "Tool to import and synchronize GitHub issues with YouTrack",
+  "keywords": [
+    "github",
+    "youtrack",
+    "sync",
+    "issues"
+  ],
+  "homepage": "https://github.com/Vayneel/jetbrains-github-to-youtrack#readme",
+  "bugs": {
+    "url": "https://github.com/Vayneel/jetbrains-github-to-youtrack/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Vayneel/jetbrains-github-to-youtrack.git"
+  },
+  "license": "MIT",
+  "author": "Oleksandr Mykyta",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "lint": "eslint . --ext .js",
+    "format": "prettier --write .",
+    "prepare": "husky",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.1.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "husky": "^9.0.10",
+    "jest": "^29.7.0",
+    "lint-staged": "^15.2.2",
+    "nodemon": "^3.0.3",
+    "prettier": "^3.2.5"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
