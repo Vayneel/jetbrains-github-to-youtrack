@@ -2,8 +2,8 @@ import axios from "axios";
 import { getEnvVar, logger } from "./utils.js";
 
 export function createYouTrackClient() {
-  const baseUrl = getRequiredEnv("YOUTRACK_BASE_URL").replace(/\/$/, "");
-  const token = getRequiredEnv("YOUTRACK_TOKEN");
+  const baseUrl = getEnvVar("YOUTRACK_BASE_URL").replace(/\/$/, "");
+  const token = getEnvVar("YOUTRACK_TOKEN");
   const http = axios.create({
     baseURL: `${baseUrl}/api`,
     headers: {
@@ -19,7 +19,7 @@ export function createYouTrackClient() {
 export async function createIssue(
   http,
   {
-    projectId,
+    projectShortName,
     summary,
     description,
     state,
@@ -47,7 +47,7 @@ export async function createIssue(
   }
 
   const payload = {
-    project: { id: projectId },
+    project: { shortName: projectShortName },
     summary,
     description,
     customFields: fields,

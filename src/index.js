@@ -1,12 +1,12 @@
-import { getRequiredEnv, logger } from "./utils.js";
+import { getEnvVar, logger } from "./utils.js";
 import { createGitHubClient, listIssues } from "./github.js";
 import { createYouTrackClient, createIssue } from "./youtrack.js";
 import { mapGitHubIssueToYouTrack } from "./mapper.js";
 
 export async function main() {
-  const owner = getRequiredEnv("GITHUB_OWNER");
-  const repo = getRequiredEnv("GITHUB_REPO");
-  const youtrackProjectId = getRequiredEnv("YOUTRACK_PROJECT_ID");
+  const owner = getEnvVar("GITHUB_OWNER");
+  const repo = getEnvVar("GITHUB_REPO");
+  const youtrackProjectShortName = getEnvVar("YOUTRACK_PROJECT_SHORT_NAME");
 
   const octokit = createGitHubClient();
   const youtrack = createYouTrackClient();
@@ -16,7 +16,7 @@ export async function main() {
   for (const ghIssue of issues) {
     const yt_issue = mapGitHubIssueToYouTrack(ghIssue);
     await createIssue(youtrack, {
-      projectId: youtrackProjectId,
+      projectShortName: youtrackProjectShortName,
       summary: yt_issue.summary,
       description: yt_issue.description,
       state: yt_issue.state,
