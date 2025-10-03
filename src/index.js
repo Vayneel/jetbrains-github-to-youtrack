@@ -14,14 +14,15 @@ async function main() {
   const issues = await listIssues(octokit, { owner, repo, state: "all" });
 
   for (const ghIssue of issues) {
-    const yt = mapGitHubIssueToYouTrack(ghIssue);
+    const yt_issue = mapGitHubIssueToYouTrack(ghIssue);
     await createIssue(youtrack, {
       projectId: youtrackProjectId,
-      summary: yt.summary,
-      description: yt.description,
-      state: yt.state,
-      assigneeLogin: yt.assigneeLogin,
-      externalId: yt.externalId,
+      summary: yt_issue.summary,
+      description: yt_issue.description,
+      state: yt_issue.state,
+      assigneeLogin: yt_issue.assigneeLogin,
+      externalId: yt_issue.externalId,
+      tags: yt_issue.tags,
     });
   }
 
