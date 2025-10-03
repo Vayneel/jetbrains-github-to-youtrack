@@ -18,7 +18,15 @@ export function createYouTrackClient() {
 
 export async function createIssue(
   http,
-  { projectId, summary, description, state, assigneeLogin, externalId },
+  {
+    projectId,
+    summary,
+    description,
+    state,
+    assigneeLogin,
+    externalId,
+    tags = [],
+  },
 ) {
   const fields = [
     { name: "summary", $type: "SimpleIssueCustomField", value: summary },
@@ -44,6 +52,7 @@ export async function createIssue(
     description,
     customFields: fields,
     ...(externalId ? { externalIssue: { id: externalId } } : {}),
+    ...(tags.length ? { tags: tags.map((name) => ({ name })) } : {}),
   };
 
   const params = { fields: "id,idReadable,summary" };
