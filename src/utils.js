@@ -8,6 +8,11 @@ export function getEnvVar(name) {
   return value.trim();
 }
 
+export function getEnvVarOptional(name) {
+  const value = process.env[name];
+  return value ? value.trim() : undefined;
+}
+
 export const logger = {
   info: (...args) => console.log("[INFO]", ...args),
   warn: (...args) => console.warn("[WARN]", ...args),
