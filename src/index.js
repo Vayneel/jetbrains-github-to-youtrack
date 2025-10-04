@@ -1,19 +1,40 @@
-import { getEnvVar, logger } from "./utils.js";
+import { getEnvVar, getEnvVarOptional, logger } from "./utils.js";
 import { createGitHubClient, listIssues } from "./github.js";
 import {
   createYouTrackClient,
   createIssue,
   fetchYouTrackTags,
+  fetchYouTrackProject,
 } from "./youtrack.js";
 import { mapGitHubIssueToYouTrack } from "./mapper.js";
 
 export async function main() {
   const owner = getEnvVar("GITHUB_OWNER");
   const repo = getEnvVar("GITHUB_REPO");
-  const youtrackProjectId = getEnvVar("YOUTRACK_PROJECT_ID");
+  let youtrackProjectId = getEnvVarOptional("YOUTRACK_PROJECT_ID");
+  const youtrackProjectShortname = getEnvVarOptional(
+    "YOUTRACK_PROJECT_SHORTNAME",
+  );
 
   const octokit = createGitHubClient();
   const youtrack = createYouTrackClient();
+
+  if (!youtrackProjectId) {
+    if (!youtrackProjectShortname) {
+      throw new Error(
+        "Either YOUTRACK_PROJECT_ID or YOUTRACK_PROJECT_SHORTNAME must be provided",
+      );
+    }
+
+    logger.info(
+      `Resolving YouTrack project ID for shortname: ${youtrackProjectShortname}`,
+    );
+    const project = await fetchYouTrackProject(
+      youtrack,
+      youtrackProjectShortname,
+    );
+    youtrackProjectId = project.id;
+  }
 
   const issues = await listIssues(octokit, { owner, repo, state: "all" });
   const youtrackTags = await fetchYouTrackTags(youtrack);

@@ -28,6 +28,22 @@ export async function fetchYouTrackTags(http) {
   }
 }
 
+export async function fetchYouTrackProject(http, projectShortname) {
+  try {
+    const { data } = await http.get(`/admin/projects/${projectShortname}`, {
+      params: { fields: "id,shortName,name" },
+    });
+
+    logger.info(
+      `Found YouTrack project: ${data.name} (${data.shortName}) - ID: ${data.id}`,
+    );
+    return data;
+  } catch (error) {
+    logger.error("Failed to fetch YouTrack project:", error.message);
+    throw error;
+  }
+}
+
 export async function createIssue(
   http,
   {
