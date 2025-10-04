@@ -1,11 +1,11 @@
-export function mapGitHubIssueToYouTrack(issue) {
+export function mapGitHubIssueToYouTrack(issue, youtrackTags = []) {
   const summary = issue.title || `GH#${issue.number}`;
   const description = buildDescription(issue);
   const state = mapState(issue.state, issue.state_reason);
   const assigneeLogin = issue.assignee?.login || undefined;
   const externalId = `github:${issue.repository_url?.split("/").slice(-2).join("/") || ""}#${issue.number}`;
-  const tags = mapLabelsToTags(issue.labels);
-  return { summary, description, state, assigneeLogin, externalId, tags };
+  const tagIds = mapLabelsToTagIds(issue.labels, youtrackTags);
+  return { summary, description, state, assigneeLogin, externalId, tagIds };
 }
 
 function mapState(ghState, ghReason) {
@@ -34,10 +34,23 @@ function buildDescription(issue) {
   return lines.join("\n");
 }
 
-function mapLabelsToTags(labels) {
-  if (!Array.isArray(labels)) return [];
-  const names = labels
+function mapLabelsToTagIds(labels, youtrackTags) {
+  if (!Array.isArray(labels) || !Array.isArray(youtrackTags)) return [];
+
+  const labelNames = labels
     .map((l) => (typeof l === "string" ? l : l?.name))
     .filter(Boolean);
-  return Array.from(new Set(names)); // only unique tags
+
+  const tagMap = new Map();
+  youtrackTags.forEach((tag) => {
+    if (tag.name && tag.id) {
+      tagMap.set(tag.name.toLowerCase(), tag.id);
+    }
+  });
+
+  const tagIds = labelNames
+    .map((name) => tagMap.get(name.toLowerCase()))
+    .filter(Boolean);
+
+  return Array.from(new Set(tagIds)); // only unique tag IDs
 }

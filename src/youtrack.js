@@ -16,21 +16,31 @@ export function createYouTrackClient() {
   return http;
 }
 
+export async function fetchYouTrackTags(http) {
+  try {
+    const { data } = await http.get("/tags", {
+      params: { fields: "id,name" },
+    });
+    return data;
+  } catch (error) {
+    logger.warn("Failed to fetch YouTrack tags:", error.message);
+    return [];
+  }
+}
+
 export async function createIssue(
   http,
   {
-    projectShortName,
+    projectId,
     summary,
     description,
     state,
     assigneeLogin,
     externalId,
-    tags = [],
+    tagIds = [],
   },
 ) {
-  const fields = [
-    { name: "summary", $type: "SimpleIssueCustomField", value: summary },
-  ];
+  const fields = [];
   if (state) {
     fields.push({
       name: "State",
@@ -47,18 +57,41 @@ export async function createIssue(
   }
 
   const payload = {
-    project: { shortName: projectShortName },
+    project: { id: projectId },
     summary,
     description,
     customFields: fields,
     ...(externalId ? { externalIssue: { id: externalId } } : {}),
-    ...(tags.length ? { tags: tags.map((name) => ({ name })) } : {}),
+    ...(tagIds.length ? { tags: tagIds.map((id) => ({ id })) } : {}),
   };
 
   const params = { fields: "id,idReadable,summary" };
-  const { data } = await http.post("/issues", payload, { params });
-  logger.info("Created YouTrack issue", data.idReadable);
-  return data;
+
+  try {
+    const { data } = await http.post("/issues", payload, { params });
+    logger.info("Created YouTrack issue", data.idReadable);
+    return data;
+  } catch (error) {
+    // If assignee is invalid, try without assignee
+    if (
+      assigneeLogin &&
+      error.response?.data?.error_description?.includes("No user for login")
+    ) {
+      logger.warn(
+        `User ${assigneeLogin} not found in YouTrack, creating issue without assignee`,
+      );
+      const payloadWithoutAssignee = {
+        ...payload,
+        customFields: fields.filter((field) => field.name !== "Assignee"),
+      };
+      const { data } = await http.post("/issues", payloadWithoutAssignee, {
+        params,
+      });
+      logger.info("Created YouTrack issue", data.idReadable);
+      return data;
+    }
+    throw error;
+  }
 }
 
 export async function updateIssue(http, issueId, patch) {
