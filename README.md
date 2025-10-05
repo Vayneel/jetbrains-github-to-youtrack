@@ -25,10 +25,10 @@ GitHub provides a live public URL for webhooks automatically.
    https://your-codespace-id-3000.app.github.dev
    ```
 
-⚠️ **Important:** Codespaces already provide a `GH_TOKEN` in the environment.  
-You **must** explicitly export your own GitHub token as `GH_TOKEN` if you want the tool to use it:
+⚠️ **Important:** Codespaces already provide a `GITHUB_TOKEN` in the environment.  
+You **must** explicitly export your own GitHub token as `GITHUB_TOKEN` if you want the tool to use it:
 ```bash
-export GH_TOKEN="your-personal-token-here"
+export GITHUB_TOKEN="your-personal-token-here"
 ```
 
 #### ⚙️ Option B: Run Locally
@@ -84,7 +84,7 @@ GITHUB_API_URL="https://api.github.com" # Default GitHub API endpoint
    - ✅ `repo` (Full control of private repositories)
    - ✅ `read:org` (if working with organization repositories)
    - ✅ `issues`
-4. Copy your token and export it inside Codespaces as `GH_TOKEN`.
+4. Copy your token and export it inside Codespaces as `GITHUB_TOKEN`.
 
 #### 🔹 YouTrack Permanent Token
 
@@ -186,7 +186,7 @@ Expected response:
    - Otherwise → a **new issue** is created.
 
 ⚠️ **Known Limitation:** There is a known issue where duplicate YouTrack issues may be created instead of updating existing ones.  
-Currently, this is **not fixed** due to time constraints. Be aware that running multiple imports or webhook events may create duplicates.
+Currently, this is **not fixed** due to time constraints. Be aware that running multiple imports or webhook events will create duplicates.
 
 ---
 
@@ -204,7 +204,7 @@ Currently, this is **not fixed** due to time constraints. Be aware that running 
 2. Copy `.env.example` → `.env` and fill required values.  
 3. Export your GitHub token explicitly inside Codespaces:
    ```bash
-   export GH_TOKEN="your-personal-token-here"
+   export GITHUB_TOKEN="your-personal-token-here"
    ```
 4. Run:
    ```bash
@@ -215,3 +215,5 @@ Currently, this is **not fixed** due to time constraints. Be aware that running 
    `https://<your-codespace-id>-3000.app.github.dev/webhook`.  
 6. Test by creating or editing issues.  
 7. Confirm synchronization and check `/health`.
+
+---
