@@ -1,11 +1,9 @@
 import { Octokit } from "@octokit/rest";
-import { getEnvVar, logger } from "./utils.js";
+import { getEnvVar, getEnvVarOptional, logger } from "./utils.js";
 
 export function createGitHubClient() {
   const token = getEnvVar("GITHUB_TOKEN");
-  const baseUrl = (
-    process.env.GITHUB_API_URL || "https://api.github.com"
-  ).trim();
+  const baseUrl = getEnvVarOptional("GITHUB_API_URL", "https://api.github.com");
   const octokit = new Octokit({ auth: token, baseUrl });
   return octokit;
 }
