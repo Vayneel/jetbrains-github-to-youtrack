@@ -110,9 +110,98 @@ export async function createIssue(
   }
 }
 
+export async function findIssueByExternalId(http, externalId) {
+  try {
+    const { data } = await http.get("/issues", {
+      params: {
+        query: `externalIssue.id:${externalId}`,
+        fields: "id,idReadable,summary,externalIssue",
+      },
+    });
+
+    if (data.length > 0) {
+      logger.info(
+        `Found existing YouTrack issue ${data[0].idReadable} for external ID: ${externalId}`,
+      );
+      return data[0];
+    }
+
+    return null;
+  } catch (error) {
+    logger.warn(
+      `Failed to find YouTrack issue by external ID ${externalId}:`,
+      error.message,
+    );
+    return null;
+  }
+}
+
 export async function updateIssue(http, issueId, patch) {
   const params = { fields: "id,idReadable,summary" };
   const { data } = await http.post(`/issues/${issueId}`, patch, { params });
   logger.info("Updated YouTrack issue", data.idReadable);
   return data;
+}
+
+export async function updateIssueFields(
+  http,
+  issueId,
+  { summary, description, state, assigneeLogin, tagIds = [] },
+) {
+  const fields = [];
+
+  if (state) {
+    fields.push({
+      name: "State",
+      $type: "StateIssueCustomField",
+      value: { name: state },
+    });
+  }
+
+  if (assigneeLogin) {
+    fields.push({
+      name: "Assignee",
+      $type: "SingleUserIssueCustomField",
+      value: { login: assigneeLogin },
+    });
+  }
+
+  const patch = {
+    summary,
+    description,
+    customFields: fields,
+    ...(tagIds.length ? { tags: tagIds.map((id) => ({ id })) } : {}),
+  };
+
+  try {
+    const { data } = await http.post(`/issues/${issueId}`, patch, {
+      params: { fields: "id,idReadable,summary" },
+    });
+    logger.info("Updated YouTrack issue", data.idReadable);
+    return data;
+  } catch (error) {
+    // If assignee is invalid, try without assignee
+    if (
+      assigneeLogin &&
+      error.response?.data?.error_description?.includes("No user for login")
+    ) {
+      logger.warn(
+        `User ${assigneeLogin} not found in YouTrack, updating issue without assignee`,
+      );
+      const patchWithoutAssignee = {
+        ...patch,
+        customFields: fields.filter((field) => field.name !== "Assignee"),
+      };
+      const { data } = await http.post(
+        `/issues/${issueId}`,
+        patchWithoutAssignee,
+        {
+          params: { fields: "id,idReadable,summary" },
+        },
+      );
+      logger.info("Updated YouTrack issue", data.idReadable);
+      return data;
+    }
+    throw error;
+  }
 }

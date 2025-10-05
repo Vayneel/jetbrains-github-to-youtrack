@@ -3,9 +3,15 @@ export function mapGitHubIssueToYouTrack(issue, youtrackTags = []) {
   const description = buildDescription(issue);
   const state = mapState(issue.state, issue.state_reason);
   const assigneeLogin = issue.assignee?.login || undefined;
-  const externalId = `github:${issue.repository_url?.split("/").slice(-2).join("/") || ""}#${issue.number}`;
+  const externalId = generateExternalId(issue);
   const tagIds = mapLabelsToTagIds(issue.labels, youtrackTags);
   return { summary, description, state, assigneeLogin, externalId, tagIds };
+}
+
+export function generateExternalId(issue) {
+  const repoUrl = issue.repository?.html_url || issue.repository_url;
+  const repoPath = repoUrl?.split("/").slice(-2).join("/") || "";
+  return `github:${repoPath}#${issue.number}`;
 }
 
 function mapState(ghState, ghReason) {

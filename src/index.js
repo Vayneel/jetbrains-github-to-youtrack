@@ -5,6 +5,7 @@ import {
   createIssue,
   fetchYouTrackTags,
   fetchYouTrackProject,
+  findIssueByExternalId,
 } from "./youtrack.js";
 import { mapGitHubIssueToYouTrack } from "./mapper.js";
 
@@ -41,6 +42,20 @@ export async function main() {
 
   for (const ghIssue of issues) {
     const yt_issue = mapGitHubIssueToYouTrack(ghIssue, youtrackTags);
+
+    // Check if issue already exists in YouTrack
+    const existingIssue = await findIssueByExternalId(
+      youtrack,
+      yt_issue.externalId,
+    );
+
+    if (existingIssue) {
+      logger.info(
+        `Issue ${ghIssue.number} already exists in YouTrack as ${existingIssue.idReadable}, skipping`,
+      );
+      continue;
+    }
+
     await createIssue(youtrack, {
       projectId: youtrackProjectId,
       summary: yt_issue.summary,

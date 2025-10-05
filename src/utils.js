@@ -8,9 +8,9 @@ export function getEnvVar(name) {
   return value.trim();
 }
 
-export function getEnvVarOptional(name) {
+export function getEnvVarOptional(name, defaulValue = undefined) {
   const value = process.env[name];
-  return value ? value.trim() : undefined;
+  return value ? value.trim() : defaulValue;
 }
 
 export const logger = {
