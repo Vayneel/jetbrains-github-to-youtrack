@@ -1,7 +1,7 @@
 import express from "express";
 import crypto from "crypto";
 import { getEnvVar, getEnvVarOptional, logger } from "./utils.js";
-import { createGitHubClient } from "./github.js";
+import { createGitHubClient, listIssues } from "./github.js";
 import {
   createYouTrackClient,
   findIssueByExternalId,
@@ -52,10 +52,11 @@ function verifySignature(req, res, next) {
   next();
 }
 
-// Initialize clients
+// Initialize clients and fetch all issues from GitHub
 let youtrackClient;
 let youtrackProjectId;
 let youtrackTags;
+let githubClient;
 
 async function initializeClients() {
   try {
@@ -64,8 +65,10 @@ async function initializeClients() {
     let projectId = getEnvVarOptional("YOUTRACK_PROJECT_ID");
     const projectShortname = getEnvVarOptional("YOUTRACK_PROJECT_SHORTNAME");
 
+    githubClient = createGitHubClient();
     youtrackClient = createYouTrackClient();
 
+    // Resolve YouTrack project ID if not provided
     if (!projectId) {
       if (!projectShortname) {
         throw new Error(
@@ -88,10 +91,63 @@ async function initializeClients() {
 
     logger.info(`Webhook server initialized for ${owner}/${repo}`);
     logger.info(`YouTrack project ID: ${youtrackProjectId}`);
+
+    // Import all GitHub issues at startup
+    await importAllGitHubIssues(owner, repo);
   } catch (error) {
     logger.error("Failed to initialize clients:", error.message);
     process.exit(1);
   }
+}
+
+// Import or update all GitHub issues in YouTrack
+async function importAllGitHubIssues(owner, repo) {
+  logger.info("Fetching all GitHub issues for initial import...");
+  const issues = await listIssues(githubClient, { owner, repo });
+
+  logger.info(`Starting YouTrack sync for ${issues.length} GitHub issues...`);
+
+  for (const issue of issues) {
+    const externalId = generateExternalId(issue);
+
+    try {
+      const existingIssue = await findIssueByExternalId(
+        youtrackClient,
+        externalId,
+      );
+      const mappedIssue = mapGitHubIssueToYouTrack(issue, youtrackTags);
+
+      if (existingIssue) {
+        // Update existing issue in YouTrack
+        await updateIssueFields(youtrackClient, existingIssue.id, {
+          summary: mappedIssue.summary,
+          description: mappedIssue.description,
+          state: mappedIssue.state,
+          assigneeLogin: mappedIssue.assigneeLogin,
+          tagIds: mappedIssue.tagIds,
+        });
+        logger.info(`Updated YouTrack issue for GitHub #${issue.number}`);
+      } else {
+        // Create new issue in YouTrack
+        await createIssue(youtrackClient, {
+          projectId: youtrackProjectId,
+          summary: mappedIssue.summary,
+          description: mappedIssue.description,
+          state: mappedIssue.state,
+          assigneeLogin: mappedIssue.assigneeLogin,
+          externalId: mappedIssue.externalId,
+          tagIds: mappedIssue.tagIds,
+        });
+        logger.info(`Created new YouTrack issue for GitHub #${issue.number}`);
+      }
+    } catch (err) {
+      logger.error(
+        `Failed to sync GitHub issue #${issue.number}: ${err.message}`,
+      );
+    }
+  }
+
+  logger.info("Completed initial GitHub -> YouTrack import");
 }
 
 // Handle GitHub issue events
@@ -107,54 +163,31 @@ async function handleIssueEvent(event, payload) {
   logger.info(`Processing GitHub issue ${issue.number} - Action: ${action}`);
 
   try {
-    // Find existing YouTrack issue
     const existingIssue = await findIssueByExternalId(
       youtrackClient,
       externalId,
     );
+    const mappedIssue = mapGitHubIssueToYouTrack(issue, youtrackTags);
 
     if (existingIssue) {
-      // Update existing issue
-      const mappedIssue = mapGitHubIssueToYouTrack(issue, youtrackTags);
-
-      await updateIssueFields(youtrackClient, existingIssue.id, {
-        summary: mappedIssue.summary,
-        description: mappedIssue.description,
-        state: mappedIssue.state,
-        assigneeLogin: mappedIssue.assigneeLogin,
-        tagIds: mappedIssue.tagIds,
-      });
-
-      logger.info(
-        `Updated YouTrack issue ${existingIssue.idReadable} for GitHub issue #${issue.number}`,
-      );
+      await updateIssueFields(youtrackClient, existingIssue.id, mappedIssue);
+      logger.info(`Updated YouTrack issue for GitHub #${issue.number}`);
     } else {
-      // Create new issue if it doesn't exist
-      const mappedIssue = mapGitHubIssueToYouTrack(issue, youtrackTags);
-
       await createIssue(youtrackClient, {
         projectId: youtrackProjectId,
-        summary: mappedIssue.summary,
-        description: mappedIssue.description,
-        state: mappedIssue.state,
-        assigneeLogin: mappedIssue.assigneeLogin,
-        externalId: mappedIssue.externalId,
-        tagIds: mappedIssue.tagIds,
+        ...mappedIssue,
       });
-
-      logger.info(
-        `Created new YouTrack issue for GitHub issue #${issue.number}`,
-      );
+      logger.info(`Created new YouTrack issue for GitHub #${issue.number}`);
     }
   } catch (error) {
     logger.error(
-      `Failed to sync GitHub issue #${issue.number}:`,
-      error.message,
+      `Failed to sync GitHub issue #${issue.number}: ${error.message}`,
     );
     throw error;
   }
 }
 
+// Webhook endpoint
 app.post("/webhook", verifySignature, async (req, res) => {
   try {
     const event = req.headers["x-github-event"];
@@ -165,9 +198,6 @@ app.post("/webhook", verifySignature, async (req, res) => {
     switch (event) {
       case "issues":
         await handleIssueEvent(event, payload);
-        break;
-      case "issue_comment":
-        await handleIssueCommentEvent(event, payload);
         break;
       default:
         logger.info(`Ignoring webhook event: ${event}`);
@@ -180,11 +210,12 @@ app.post("/webhook", verifySignature, async (req, res) => {
   }
 });
 
+// Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    youtrackProjectId: youtrackProjectId,
+    youtrackProjectId,
   });
 });
 
