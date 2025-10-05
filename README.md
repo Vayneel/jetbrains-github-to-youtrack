@@ -25,6 +25,12 @@ GitHub provides a live public URL for webhooks automatically.
    https://your-codespace-id-3000.app.github.dev
    ```
 
+⚠️ **Important:** Codespaces already provide a `GITHUB_TOKEN` in the environment.  
+You **must** explicitly export your own GitHub token as `GITHUB_TOKEN` if you want the tool to use it:
+```bash
+export GITHUB_TOKEN="your-personal-token-here"
+```
+
 #### ⚙️ Option B: Run Locally
 If you prefer local development:
 ```bash
@@ -50,11 +56,11 @@ Then open `.env` and set the required values:
 
 ```bash
 # 🔐 Required configuration — must be provided for the app to function
-GITHUB_TOKEN=github_pat_...             # GitHub personal access token (see below)
+GITHUB_TOKEN=github_pat_...             # GitHub personal access token (see above)
 GITHUB_OWNER=YourGitHubUsername         # Your GitHub username or organization
 GITHUB_REPO=YourRepositoryName          # Repository to sync from
 YOUTRACK_BASE_URL=https://example.youtrack.cloud  # Your YouTrack base URL
-YOUTRACK_TOKEN=perm-...                 # YouTrack permanent token (see below)
+YOUTRACK_TOKEN=perm-...                 # YouTrack permanent token
 GITHUB_WEBHOOK_SECRET=supersecret       # Secret for verifying GitHub webhooks
 
 # ⚠️ Conditional configuration — at least one of these must be set
@@ -78,7 +84,7 @@ GITHUB_API_URL="https://api.github.com" # Default GitHub API endpoint
    - ✅ `repo` (Full control of private repositories)
    - ✅ `read:org` (if working with organization repositories)
    - ✅ `issues`
-4. Copy your token and paste it into `.env` as `GITHUB_TOKEN`.
+4. Copy your token and export it inside Codespaces as `GITHUB_TOKEN`.
 
 #### 🔹 YouTrack Permanent Token
 
@@ -179,6 +185,9 @@ Expected response:
    - If the issue exists → it’s **updated**.  
    - Otherwise → a **new issue** is created.
 
+⚠️ **Known Limitation:** There is a known issue where duplicate YouTrack issues may be created instead of updating existing ones.  
+Currently, this is **not fixed** due to time constraints. Be aware that running multiple imports or webhook events will create duplicates.
+
 ---
 
 ## 🔒 Security
@@ -193,14 +202,18 @@ Expected response:
 
 1. Open project in **GitHub Codespaces** (recommended).  
 2. Copy `.env.example` → `.env` and fill required values.  
-3. Run:
+3. Export your GitHub token explicitly inside Codespaces:
+   ```bash
+   export GITHUB_TOKEN="your-personal-token-here"
+   ```
+4. Run:
    ```bash
    npm install
    npm run webhook
    ```
-4. Add a webhook in GitHub pointing to  
+5. Add a webhook in GitHub pointing to  
    `https://<your-codespace-id>-3000.app.github.dev/webhook`.  
-5. Test by creating or editing issues.  
-6. Confirm synchronization and check `/health`.
+6. Test by creating or editing issues.  
+7. Confirm synchronization and check `/health`.
 
 ---
